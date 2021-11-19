@@ -1,0 +1,3 @@
+HBase存储海量的数据并且支持高并发随机写和实时查询。存储数据的“结构”可以地非常灵活
+Region是HBase中分布式存储和负载均很的最小单元。不同的Region分布到不同的RegionServer上。
+Region由一个或者多个Store组成，每个Store保存一个column family, 每个Store又由一个MemStore(存储在内存中)和0到多个StoreFile（存储在HDFS上）组成。

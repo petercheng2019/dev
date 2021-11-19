@@ -1,0 +1,11 @@
+k8s的service类型:
+1. nodeport, 需要大量的端口和一个well know ip（host ip还有可能变化） 
+2. LoadBalancer，需要云厂商支持
+3. ingress: 
+Ingress 规则定义了对七层网关的要求，包括URL分发规则，基于不同域名的虚拟主机，SSL证书等。Kubernetes使用Ingress Controller 来监控Ingress规则，并通过一个七层网关来实现这些要求，一般可以使用Nginx，HAProxy，Envoy等。
+虽然Ingress Controller通过七层网关为后端的多个Service提供了统一的入口，但由于其部署在集群中，因此并不能直接对外提供服务。实际上Ingress需要配合NodePort和LoadBalancer才能提供对外的流量入口
+    a. 外部请求先通过四层Load Balancer进入内部网络
+    b. Load Balancer将流量分发到后端多个主机节点上的NodePort (userspace转发)
+    c. 请求从NodePort进入到Ingress Controller (iptabes规则，Ingress Controller本身是一个NodePort类型的Service)
+    d. Ingress Controller根据Ingress rule进行七层分发，根据HTTP的URL和Host将请求分发给不同的Service (userspace转发)
+    e. Service将请求最终导入到后端提供服务的Pod中 (iptabes规则)

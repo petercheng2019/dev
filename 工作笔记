@@ -1,0 +1,7 @@
+用户模块：source为null，默认给0；source为1或者2的时候，设置bipcode.   已处理
+部门导入的垃圾数据清理。
+用户模块：即时用户没有activated, 也要导入bip用户数据    完成
+发布到测试环境
+优化导入速度
+
+数据胡 hudi / incubating
