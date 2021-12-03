@@ -9,3 +9,9 @@ Ingress 规则定义了对七层网关的要求，包括URL分发规则，基于
     c. 请求从NodePort进入到Ingress Controller (iptabes规则，Ingress Controller本身是一个NodePort类型的Service)
     d. Ingress Controller根据Ingress rule进行七层分发，根据HTTP的URL和Host将请求分发给不同的Service (userspace转发)
     e. Service将请求最终导入到后端提供服务的Pod中 (iptabes规则)
+
+
+Isito:
+
+Introducing istio traffice management
+1. istio connects to service discovery system. For example, if you've installed istio on a kubernetes cluster， then istio automatically detects the services and endpoints in that cluaster.

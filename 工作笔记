@@ -1,7 +1,13 @@
 用户模块：source为null，默认给0；source为1或者2的时候，设置bipcode.   已处理
-部门导入的垃圾数据清理。
+部门导入的垃圾数据清理。   已完成
 用户模块：即时用户没有activated, 也要导入bip用户数据    完成
-发布到测试环境
-优化导入速度
+发布到测试环境    已完成
+优化导入速度   已完成
 
-数据胡 hudi / incubating
+数据 hudi / incubating
+
+
+修改了测试库的，tenant_org_user_rl id长度为36
+12/23
+***   updatetime导入 **   已完成
+
