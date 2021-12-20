@@ -14,4 +14,95 @@ Ingress 规则定义了对七层网关的要求，包括URL分发规则，基于
 Isito:
 
 Introducing istio traffice management
-1. istio connects to service discovery system. For example, if you've installed istio on a kubernetes cluster， then istio automatically detects the services and endpoints in that cluaster.
+1. istio connects to service discovery system. For example, if you have installed istio on a kubernetes cluster， then istio automatically detects the services and endpoints in that cluaster.
+
+
+sidecar
+默认情况下，istio让每个Envoy代理都可以访问来自和它关联的工作负载的所有端口的请求，
+然后转发到对应的工作负载。
+
+网关
+使用网关为网格来管理入站和出站流量，可以让您指定要进入或离开网格的流量。网关配置被用于运行在网络边界的独立Envoy代理，
+而不是服务工作负载的sidecar代理。
+与K8S ingress api这种控制进入系统流量的其他机制不同，istio网关让您充分利用流量路由的强大能力和灵活性。
+可以这么做的原因是Istio的网关资源可以配置4-6层的负载均衡属性，如对外暴露的端口，TLS设置等。
+作为替代应用层流量路由L7到相同的API资源，绑定一个常规的Istio虚拟服务到网关。这可以像管理网格中其他数据平面的流量
+一样去管理网关流量。
+
+IngressGateway是envoy代理的封装。它的配置方式与服务网格中使用的sidecar相同。当我们创建或更改Gateway
+或VirtualService时，Istio Pilot控制器会检测到更改，该控制器会将这些信息转换为Envoy配置并将其发送到相关代理，
+包括IngressGateway内部的Envoy。
+
+istio service mesh中分为两个平面，一个是数据平面，一个是控制平面。对于Envoy来说他就是数据平面最为重要的功能体现。
+Envoy的容器里运行两个进程，一个叫pilot-agent，一个是envoy-proxy本身，
+
+By default, Istio configures every Envoy proxy to accept traffic on all the ports of its associated workload,
+and to reach every workload. You can use a sidecar configuration to do the following:
+
+Fine-tune the set of ports and protocols that an Envoy proxy accepts.
+Limit the set of services that the Envoy proxy can reach.
+
+### 为容器设置环境变量
+创建pod时，可以为其下的容器设置环境变量。通过配置文件的env或者envFrom的字段来设置。
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ops-nginx-api   #Deployment 对象的名称，与应用名称保持一致
+  namespace: default    #命名空间
+  labels:
+    appName: ops-nginx-api  #应用名称
+spec:
+  selector:
+    matchLabels:
+      app: ops-nginx-api  #pod 标签名称
+  replicas: 1 #副本数
+  strategy:   #部署策略
+      type: RollingUpdate   #类型
+      rollingUpdate:    #滚动更新
+        maxSurge: 1     #一次可以增加pod数
+        maxUnavailable: 0   #最大不可用pod数量
+  template:
+    metadata:
+      labels: ops-nginx-api   # pod节点标签
+    spec:
+      containers:
+            -   name: nts-servicemarket-gateway2-istio
+                image: 10.223.16.9:8888/flycloud-new-dev/nts-servicemarket-gateway2:1-13201-b0248e32
+                imagePullPolicy: Always
+                ports:
+                -   containerPort: 8080
+                env:
+                -   name: JAVA_OPTS
+                    value: -Xmx1500m
+                -   name: server.port
+                    value: "8080"
+                -   name: spring.profiles.active
+                    value: prod
+                -   name: APM_PLUGINS
+                    value: apm-trace-ignore-plugin-8.0.1.jar,apm-spring-cloud-gateway-2.0.x-plugin-8.0.1.jar
+                livenessProbe:
+                    failureThreshold: 30
+                    initialDelaySeconds: 180
+                    periodSeconds: 2
+                    successThreshold: 1
+                    tcpSocket:
+                        port: 8080
+                    timeoutSeconds: 2
+                readinessProbe:
+                    failureThreshold: 3
+                    initialDelaySeconds: 20
+                    periodSeconds: 2
+                    successThreshold: 2
+                    tcpSocket:
+                        port: 8080
+                    timeoutSeconds: 2
+                volumeMounts:
+                -   name: vol1-properties
+                    mountPath: /flydiy/application-prod.yml
+                    subPath: application-prod.yml
+                -   name: vol1-properties
+                    mountPath: /flydiy/bootstrap.properties
+                    subPath: bootstrap.properties

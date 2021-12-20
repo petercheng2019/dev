@@ -1,0 +1,60 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ops-nginx-api   #Deployment 对象的名称，与应用名称保持一致
+  namespace: default    #命名空间
+  labels:
+    appName: ops-nginx-api  #应用名称
+spec:
+  selector:
+    matchLabels:
+      app: ops-nginx-api  #pod 标签名称
+  replicas: 1 #副本数
+  strategy:   #部署策略
+      type: RollingUpdate   #类型
+      rollingUpdate:    #滚动更新
+        maxSurge: 1     #一次可以增加pod数
+        maxUnavailable: 0   #最大不可用pod数量
+  template:
+    metadata:
+      labels: ops-nginx-api   # pod节点标签
+    spec:
+      containers:
+            -   name: nts-servicemarket-gateway2-istio
+                image: 10.223.16.9:8888/flycloud-new-dev/nts-servicemarket-gateway2:1-13201-b0248e32
+                imagePullPolicy: Always
+                ports:
+                -   containerPort: 8080
+                env:
+                -   name: JAVA_OPTS
+                    value: -Xmx1500m
+                -   name: server.port
+                    value: "8080"
+                -   name: spring.profiles.active
+                    value: prod
+                -   name: APM_PLUGINS
+                    value: apm-trace-ignore-plugin-8.0.1.jar,apm-spring-cloud-gateway-2.0.x-plugin-8.0.1.jar
+                livenessProbe:
+                    failureThreshold: 30
+                    initialDelaySeconds: 180
+                    periodSeconds: 2
+                    successThreshold: 1
+                    tcpSocket:
+                        port: 8080
+                    timeoutSeconds: 2
+                readinessProbe:
+                    failureThreshold: 3
+                    initialDelaySeconds: 20
+                    periodSeconds: 2
+                    successThreshold: 2
+                    tcpSocket:
+                        port: 8080
+                    timeoutSeconds: 2
+                volumeMounts:
+                -   name: vol1-properties
+                    mountPath: /flydiy/application-prod.yml
+                    subPath: application-prod.yml
+                -   name: vol1-properties
+                    mountPath: /flydiy/bootstrap.properties
+                    subPath: bootstrap.properties

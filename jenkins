@@ -1,0 +1,94 @@
+#----------------------------------------------------参数定义---------------------------------------------------------
+
+# 镜像库地址
+image_library_address=harbor-vip.pcloud.localdomain
+
+# 镜像库
+image_library_name=pt00205
+
+# 时间戳
+time_stamp=$(date +%Y-%m%d-%H%M%S)
+
+# 服务名/镜像名
+package_name=scip-user-service
+
+# dockerfile的目录/完整模块名
+dockerfile_path=open-scip-app/open-scip-user-service
+
+# 部署环境
+deploy_env=dev
+
+# 工作负载所在的命名空间
+namespace=scip-dev
+
+# 重新定义分支名
+branch_name=$(echo ${branch_name} |awk -F "/" '{print $2}')
+
+
+#----------------------------------------------------函数定义---------------------------------------------------------
+
+# 编译构建
+function build() {
+
+if [ ${unit_test} -eq 0 ]; then
+     echo "执行单元测试"
+     /usr/local/maven/apache-maven-3.6.3/bin/mvn clean test -U -pl ${dockerfile_path} -am
+else
+     echo "执行普通构建"
+     /usr/local/maven/apache-maven-3.6.3/bin/mvn clean package -Dmaven.test.skip=true -U -pl ${dockerfile_path} -am
+fi
+}
+
+
+# 打镜像
+function makeImage() {
+
+docker login harbor-vip.pcloud.localdomain -u zengjian15 -p Easyops123
+
+docker build -t ${package_name} -f ${dockerfile_path}/Dockerfile .
+
+docker tag ${package_name} harbor-vip.pcloud.localdomain/pt00205/${package_name}:${branch_name}_${time_stamp}
+
+docker push harbor-vip.pcloud.localdomain/pt00205/${package_name}:${branch_name}_${time_stamp}
+
+#推送完后清理Jenkins上镜像
+docker rmi -f ${package_name} harbor-vip.pcloud.localdomain/pt00205/${package_name}:${branch_name}_${time_stamp}
+
+#删除虚悬镜像
+#docker image prune -f
+}
+
+
+#----------------------------------------------------业务执行---------------------------------------------------------
+
+case "${devops_option}" in
+    仅构建)
+    	build
+        echo "" > k8s-cd-${package_name}-${deploy_env}.txt
+    ;;
+    构建及部署)
+        build
+        makeImage
+        #生成cd所需要的参数信息
+		echo ${image_library_address} > ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${image_library_name} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${package_name} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${branch_name}_${time_stamp} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${deploy_env} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${namespace} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+    ;;
+    仅部署)
+        #生成cd所需要的参数信息
+		echo ${image_library_address} > ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${image_library_name} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${package_name} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${image_version} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${deploy_env} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+		echo ${namespace} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+    ;;
+    重启)
+        echo ${package_name} > ./k8s-cd-${package_name}-${deploy_env}.txt
+        echo ${deploy_env} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+        echo ${namespace} >> ./k8s-cd-${package_name}-${deploy_env}.txt
+    ;;
+esac
